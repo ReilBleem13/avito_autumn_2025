@@ -9,7 +9,9 @@ type TeamRepositoryInterface interface {
 	Create(ctx context.Context, teamName string, users []domain.User) error
 	Get(ctx context.Context, teamName string) ([]domain.User, error)
 }
-type UserRepositoryInterface interface{}
+type UserRepositoryInterface interface {
+	SetIsActive(ctx context.Context, userID string, isActive bool) (*domain.User, string, error)
+}
 type PullRequestRepositoryInterface interface{}
 
 type LoggerInterfaces interface {
