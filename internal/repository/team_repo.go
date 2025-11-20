@@ -7,6 +7,7 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type TeamRepository struct {
@@ -36,6 +37,9 @@ func (t *TeamRepository) Create(ctx context.Context, teamName string, users []do
 		INSERT INTO teams (team_name) VALUES ($1)`
 	_, err = tx.ExecContext(ctx, createTeamQuery, teamName)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			return domain.ErrTeamExists()
+		}
 		return err
 	}
 
