@@ -16,6 +16,26 @@ func (s *Service) CreatePullRequest(ctx context.Context, prID, prName, authorID 
 		logging.StringAttr("authorID", authorID),
 	)
 
+	if prID == "" {
+		s.logger.Error("failed to create pull request")
+		return nil, domain.ErrInvalidRequest("pr_id is empty")
+	}
+
+	if prName == "" {
+		s.logger.Error("failed to create pull request",
+			logging.StringAttr("prID", prID),
+		)
+		return nil, domain.ErrInvalidRequest("pr_name is empty")
+	}
+
+	if authorID == "" {
+		s.logger.Error("failed to create pull request",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("prName", prName),
+		)
+		return nil, domain.ErrInvalidRequest("author_id is empty")
+	}
+
 	_, err := s.users.GetUser(ctx, authorID)
 	if err != nil {
 		s.logger.Error("failed to create pr",

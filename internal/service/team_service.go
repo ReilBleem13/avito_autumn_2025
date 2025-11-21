@@ -17,7 +17,6 @@ func (s *Service) CreateTeam(ctx context.Context, teamName string, users []domai
 
 	if teamName == "" {
 		s.logger.Error("failed to create team",
-			logging.StringAttr("team_name", teamName),
 			logging.StringAttr("error", "team_name is empty"),
 		)
 		return domain.ErrInvalidRequest("team_name is empty")

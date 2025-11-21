@@ -5,6 +5,7 @@ import (
 	"ReilBleem13/pull_requests_service/internal/repository/database"
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -65,7 +66,7 @@ func (u *UserRepository) GetUser(ctx context.Context, userID string) (*domain.Us
 	var user domain.User
 	if err := u.db.GetContext(ctx, &user, getUserQuery, userID); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, sql.ErrNoRows
+			return nil, fmt.Errorf("user is not exist %w", sql.ErrNoRows)
 		}
 	}
 	return &user, nil

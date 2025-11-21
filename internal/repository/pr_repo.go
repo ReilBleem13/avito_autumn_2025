@@ -36,7 +36,6 @@ func (p *PullRequestRepository) Create(ctx context.Context, prID, prName, author
 	createPRQuery := `
 		INSERT INTO pull_requests (pull_request_id, pull_request_name, author_id)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (pull_request_id, pull_request_name) DO NOTHING
 	`
 	_, err = tx.ExecContext(ctx, createPRQuery, prID, prName, authorID)
 	if err != nil {
