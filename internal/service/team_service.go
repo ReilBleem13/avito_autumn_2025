@@ -9,7 +9,7 @@ import (
 	"github.com/theartofdevel/logging"
 )
 
-func (s *Service) Create(ctx context.Context, teamName string, users []domain.User) error {
+func (s *Service) CreateTeam(ctx context.Context, teamName string, users []domain.User) error {
 	s.logger.Info("attempt to create team",
 		logging.StringAttr("team_name", teamName),
 		logging.IntAttr("quantity of users", len(users)),
@@ -20,7 +20,7 @@ func (s *Service) Create(ctx context.Context, teamName string, users []domain.Us
 			logging.StringAttr("team_name", teamName),
 			logging.StringAttr("error", "team_name is empty"),
 		)
-		return domain.ErrNotFound()
+		return domain.ErrInvalidRequest("team_name is empty")
 	}
 
 	if len(users) == 0 {
@@ -28,7 +28,7 @@ func (s *Service) Create(ctx context.Context, teamName string, users []domain.Us
 			logging.StringAttr("team_name", teamName),
 			logging.StringAttr("error", "count of users is 0"),
 		)
-		return domain.ErrNotFound()
+		return domain.ErrInvalidRequest("team_users is empty")
 	}
 
 	if err := s.teams.Create(ctx, teamName, users); err != nil {
@@ -46,7 +46,7 @@ func (s *Service) Create(ctx context.Context, teamName string, users []domain.Us
 	return nil
 }
 
-func (s *Service) Get(ctx context.Context, teamName string) ([]domain.User, error) {
+func (s *Service) GetTeam(ctx context.Context, teamName string) ([]domain.User, error) {
 	s.logger.Info("attempt to get team members",
 		logging.StringAttr("team_name", teamName),
 	)
@@ -61,7 +61,7 @@ func (s *Service) Get(ctx context.Context, teamName string) ([]domain.User, erro
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound()
 		}
-		return nil, domain.ErrNotFound()
+		return nil, err
 	}
 
 	if len(teamMembers) == 0 {

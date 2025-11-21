@@ -11,8 +11,14 @@ type TeamRepositoryInterface interface {
 }
 type UserRepositoryInterface interface {
 	SetIsActive(ctx context.Context, userID string, isActive bool) (*domain.User, string, error)
+	GetUser(ctx context.Context, userID string) (*domain.User, error)
+	GetTeamName(ctx context.Context, userID string) (string, error)
 }
-type PullRequestRepositoryInterface interface{}
+
+type PullRequestRepositoryInterface interface {
+	GetActiveTeamMembers(ctx context.Context, teamName, authorID string) ([]domain.User, error)
+	Create(ctx context.Context, prID, prName, authorID string, assignedUsers []string) error
+}
 
 type LoggerInterfaces interface {
 	Debug(msg string, params ...any)

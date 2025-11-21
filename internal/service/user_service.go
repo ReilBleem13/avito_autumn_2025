@@ -3,6 +3,8 @@ package service
 import (
 	"ReilBleem13/pull_requests_service/internal/domain"
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/theartofdevel/logging"
 )
@@ -18,7 +20,7 @@ func (s *Service) SetIsActive(ctx context.Context, userID string, isActive bool)
 			logging.StringAttr("userID", userID),
 			logging.StringAttr("error", "user_id is empty"),
 		)
-		return nil, "", domain.ErrNotFound()
+		return nil, "", domain.ErrInvalidRequest("user_id is empty")
 	}
 
 	user, teamName, err := s.users.SetIsActive(ctx, userID, isActive)
@@ -27,6 +29,11 @@ func (s *Service) SetIsActive(ctx context.Context, userID string, isActive bool)
 			logging.StringAttr("userID", userID),
 			logging.ErrAttr(err),
 		)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, "", domain.ErrNotFound()
+		}
+
 		return nil, "", err
 	}
 

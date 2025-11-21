@@ -10,10 +10,8 @@ const (
 	CodeNoCandidate ErrorCode = "NO_CANDIDATE"
 	CodeNotFound    ErrorCode = "NOT_FOUND"
 
-	CodeInvalidRequest   ErrorCode = "INVALID_REQUEST"
-	CodeTeamNameEmpty    ErrorCode = "TEAM_NAME_EMPTY"
-	CodeTeamMembersEmpty ErrorCode = "TEAM_MEMBERS_EMPTY"
-	CodeInternalError    ErrorCode = "INTERNAL_SERVER_ERROR"
+	CodeInvalidRequest ErrorCode = "INVALID_REQUEST"
+	CodeInternalError  ErrorCode = "INTERNAL_SERVER_ERROR"
 )
 
 type AppError struct {

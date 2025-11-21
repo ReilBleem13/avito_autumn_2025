@@ -22,7 +22,7 @@ func (h *Handler) handleCreateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.Create(r.Context(), req.TeamName, req.Members); err != nil {
+	if err := h.svc.CreateTeam(r.Context(), req.TeamName, req.Members); err != nil {
 		h.WriteError(w, err)
 		return
 	}
@@ -37,7 +37,7 @@ func (h *Handler) handleGetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamName := r.URL.Query().Get("team_name")
-	users, err := h.svc.Get(r.Context(), teamName)
+	users, err := h.svc.GetTeam(r.Context(), teamName)
 	if err != nil {
 		h.WriteError(w, err)
 		return

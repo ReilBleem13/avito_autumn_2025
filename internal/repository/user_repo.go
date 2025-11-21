@@ -54,3 +54,35 @@ func (u *UserRepository) SetIsActive(ctx context.Context, userID string, isActiv
 
 	return &user, teamName, nil
 }
+
+func (u *UserRepository) GetUser(ctx context.Context, userID string) (*domain.User, error) {
+	getUserQuery := `
+		SELECT user_id, username, is_active 
+		FROM users
+		WHERE user_id = $1
+	`
+
+	var user domain.User
+	if err := u.db.GetContext(ctx, &user, getUserQuery, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+	}
+	return &user, nil
+}
+
+func (u *UserRepository) GetTeamName(ctx context.Context, userID string) (string, error) {
+	getTeamNameQuery := `
+		SELECT team_name 
+		FROM team_members
+		WHERE user_id = $1
+		ORDER BY team_name
+		LIMIT 1
+	`
+
+	var teamName string
+	if err := u.db.GetContext(ctx, &teamName, getTeamNameQuery, userID); err != nil {
+		return "", err
+	}
+	return teamName, nil
+}
