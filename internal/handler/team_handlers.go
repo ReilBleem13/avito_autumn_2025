@@ -27,7 +27,7 @@ func (h *Handler) handleCreateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]string{"status": "team created"})
+	writeJSON(w, http.StatusCreated, map[string]any{"team": req})
 }
 
 func (h *Handler) handleGetTeam(w http.ResponseWriter, r *http.Request) {

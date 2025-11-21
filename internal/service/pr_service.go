@@ -101,3 +101,29 @@ func (s *Service) CreatePullRequest(ctx context.Context, prID, prName, authorID 
 		AssignedReviewers: assignedUsers,
 	}, nil
 }
+
+func (s *Service) MergePullRequest(ctx context.Context, prID string) (*domain.PullRequest, error) {
+	s.logger.Info("attempt to merge pr",
+		logging.StringAttr("prID", prID),
+	)
+
+	if prID == "" {
+		s.logger.Error("failed to create pull request")
+		return nil, domain.ErrInvalidRequest("pr_id is empty")
+	}
+
+	pullRequest, err := s.prs.Merge(ctx, prID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrNotFound()
+		}
+	}
+
+	assignedReviewers, err := s.prs.GetAssignedReviewers(ctx, prID)
+	if err != nil {
+		return nil, err
+	}
+
+	pullRequest.AssignedReviewers = assignedReviewers
+	return pullRequest, nil
+}

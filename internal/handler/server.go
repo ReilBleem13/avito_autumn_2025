@@ -29,7 +29,7 @@ func NewRouter(svc *service.Service, logger service.LoggerInterfaces) *http.Serv
 	// mux.HandleFunc("/users/getReview", nil)
 
 	mux.HandleFunc("/pullRequest/create", h.handlePullRequestCreate)
-	// mux.HandleFunc("/pullRequest/merge", nil)
+	mux.HandleFunc("/pullRequest/merge", h.handlePullRequestMerge)
 	// mux.HandleFunc("/pullRequest/reassign", nil)
 
 	// mux.HandleFunc("/stats", nil)

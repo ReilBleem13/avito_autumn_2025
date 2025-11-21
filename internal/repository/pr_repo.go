@@ -5,6 +5,7 @@ import (
 	"ReilBleem13/pull_requests_service/internal/repository/database"
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -75,6 +76,68 @@ func (p *PullRequestRepository) GetActiveTeamMembers(ctx context.Context, teamNa
 	return users, nil
 }
 
-func (p *PullRequestRepository) Merge() {}
+func (p *PullRequestRepository) Merge(ctx context.Context, prID string) (*domain.PullRequest, error) {
+	tx, err := p.db.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	var pullRequest domain.PullRequest
+	getQuery := `
+		SELECT
+			pull_request_id,
+			pull_request_name,
+			author_id,
+			status,
+			merged_at
+		FROM pull_requests
+		WHERE pull_request_id = $1
+	`
+
+	if err := tx.GetContext(ctx, &pullRequest, getQuery, prID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("pull_request is not exits: %w", sql.ErrNoRows)
+		}
+		return nil, err
+	}
+
+	updateQuery := `
+		UPDATE pull_requests 
+		SET status = 'MERGED', 
+			merged_at = NOW()
+		WHERE pull_request_id = $1 AND status = 'OPEN'
+		RETURNING status, merged_at
+	`
+
+	err = tx.QueryRowContext(ctx, updateQuery, prID).Scan(
+		&pullRequest.Status, &pullRequest.MergedAt,
+	)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	return &pullRequest, nil
+}
+
+func (p *PullRequestRepository) GetAssignedReviewers(ctx context.Context, prID string) ([]string, error) {
+	getQuery := `
+		SELECT prr.user_id 
+		FROM pull_request_reviewers prr
+		JOIN pull_requests pr ON pr.pull_request_id = prr.pull_request_id
+		WHERE prr.pull_request_id = $1 AND prr.user_id != pr.author_id
+	`
+
+	var users []string
+	if err := p.db.SelectContext(ctx, &users, getQuery, prID); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
 
 func (p *PullRequestRepository) ReAssign() {}

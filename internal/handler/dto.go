@@ -1,6 +1,9 @@
 package handler
 
-import "ReilBleem13/pull_requests_service/internal/domain"
+import (
+	"ReilBleem13/pull_requests_service/internal/domain"
+	"time"
+)
 
 // requests
 type createTeamDTO struct {
@@ -19,6 +22,10 @@ type createPullRequestDTO struct {
 	AuthorID        string `json:"author_id"`
 }
 
+type doMergedRequestDTO struct {
+	PullRequestID string `json:"pull_request_id"`
+}
+
 // response
 type getTeamUsersDTO struct {
 	TeamName string        `json:"team_name"`
@@ -26,6 +33,17 @@ type getTeamUsersDTO struct {
 }
 
 type getSetUserDTO struct {
-	User     *domain.User `json:"user"`
-	TeamName string       `json:"team_name"`
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	TeamName string `json:"team_name"`
+	IsActive bool   `json:"is_active"`
+}
+
+type getMergedDTO struct {
+	PullRequestID     string          `json:"pull_request_id"`
+	PullRequestName   string          `json:"pull_request_name"`
+	AuthorID          string          `json:"author_id"`
+	Status            domain.PRStatus `json:"status"`
+	AssignedReviewers []string        `json:"assigned_reviewers"`
+	MergedAt          *time.Time      `json:"merged_at"`
 }

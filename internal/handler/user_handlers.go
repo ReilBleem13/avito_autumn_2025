@@ -29,9 +29,11 @@ func (h *Handler) handleSetIsActive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := getSetUserDTO{
-		User:     user,
+		UserID:   user.UserID,
+		Username: user.Username,
 		TeamName: teamName,
+		IsActive: user.IsActive,
 	}
 
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{"user": response})
 }

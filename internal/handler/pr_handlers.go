@@ -28,7 +28,8 @@ func (h *Handler) handlePullRequestCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJSON(w, 201, createdPR)
+	// добавить структуру для ответа
+	writeJSON(w, 201, map[string]any{"pr": createdPR})
 }
 
 // POST /pullRequest/merge
@@ -38,6 +39,29 @@ func (h *Handler) handlePullRequestMerge(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	var req doMergedRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("invalid request body", logging.ErrAttr(err))
+		h.WriteError(w, domain.ErrInvalidRequest("invalid json payload"))
+		return
+	}
+
+	pullRequest, err := h.svc.MergePullRequest(r.Context(), req.PullRequestID)
+	if err != nil {
+		h.WriteError(w, err)
+		return
+	}
+
+	response := getMergedDTO{
+		PullRequestID:     pullRequest.PullRequestID,
+		PullRequestName:   pullRequest.PullRequestName,
+		AuthorID:          pullRequest.AuthorID,
+		Status:            pullRequest.Status,
+		AssignedReviewers: pullRequest.AssignedReviewers,
+		MergedAt:          pullRequest.MergedAt,
+	}
+
+	writeJSON(w, 200, map[string]any{"pr": response})
 }
 
 // POST /pullRequest/create
