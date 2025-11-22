@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math/rand"
 
 	"github.com/theartofdevel/logging"
 )
@@ -112,18 +113,152 @@ func (s *Service) MergePullRequest(ctx context.Context, prID string) (*domain.Pu
 		return nil, domain.ErrInvalidRequest("pr_id is empty")
 	}
 
-	pullRequest, err := s.prs.Merge(ctx, prID)
+	err := s.prs.Merge(ctx, prID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrNotFound()
-		}
-	}
-
-	assignedReviewers, err := s.prs.GetAssignedReviewers(ctx, prID)
-	if err != nil {
+		s.logger.Error("failed to merge pr",
+			logging.StringAttr("prID", prID),
+		)
 		return nil, err
 	}
 
-	pullRequest.AssignedReviewers = assignedReviewers
+	pullRequest, err := s.prs.GetPullRequest(ctx, prID)
+	if err != nil {
+		s.logger.Error("failed to get pull request",
+			logging.StringAttr("prID", prID),
+		)
+		return nil, err
+	}
+
+	s.logger.Info("pr was successfully merged",
+		logging.StringAttr("prID", prID),
+	)
+
 	return pullRequest, nil
+}
+
+func (s *Service) ReAssign(ctx context.Context, prID, oldReviewerID string) (*domain.PullRequest, string, error) {
+	s.logger.Info("attempt to reassign",
+		logging.StringAttr("prID", prID),
+		logging.StringAttr("oldReviewerID", oldReviewerID),
+	)
+
+	if prID == "" {
+		s.logger.Error("failed to reassign")
+		return nil, "", domain.ErrInvalidRequest("pr_id is empty")
+	}
+
+	if oldReviewerID == "" {
+		s.logger.Error("failed to reassign",
+			logging.StringAttr("prID", prID),
+		)
+		return nil, "", domain.ErrInvalidRequest("old_reviewer_id is empty")
+	}
+
+	pullRequest, err := s.prs.GetPullRequest(ctx, prID)
+	if err != nil {
+		s.logger.Error("failed to reassign",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", err
+	}
+
+	if pullRequest.Status == domain.PRStatusMerged {
+		s.logger.Error("failed to reassign, pr already merged",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", domain.ErrPRMerged()
+	}
+
+	isOldIn := false
+	for _, ar := range pullRequest.AssignedReviewers {
+		if ar == oldReviewerID {
+			isOldIn = true
+			break
+		}
+	}
+
+	if !isOldIn {
+		s.logger.Error("failed to reassign, old reviewer is not assigned",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", domain.ErrNotAssigned()
+	}
+
+	teamName, err := s.users.GetTeamName(ctx, oldReviewerID)
+	if err != nil {
+		s.logger.Error("failed to reassign, failed to get team name",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", err
+	}
+
+	teamMembers, err := s.teams.Get(ctx, teamName)
+	if err != nil {
+		s.logger.Error("failed to reassign, failed to get team members",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", err
+	}
+
+	// добавить проверку, что новый кандидат это не автор!
+	candidates := make([]string, 0)
+	for _, tm := range teamMembers {
+		if tm.UserID == oldReviewerID {
+			continue
+		}
+
+		alreadyAssigned := false
+		for _, r := range pullRequest.AssignedReviewers {
+			if r == tm.UserID {
+				alreadyAssigned = true
+				break
+			}
+		}
+
+		if alreadyAssigned || tm.UserID == pullRequest.AuthorID {
+			continue
+		}
+		candidates = append(candidates, tm.UserID)
+	}
+
+	if len(candidates) == 0 {
+		s.logger.Error("failed to reassign, failed to get team members",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", domain.ErrNoCandidate()
+	}
+
+	newReviewerID := candidates[rand.Intn(len(candidates))]
+
+	if err := s.prs.ReAssign(ctx, prID, oldReviewerID, newReviewerID); err != nil {
+		s.logger.Error("failed to reassign, failed to replace reviewers",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+			logging.StringAttr("newReviewerID", newReviewerID),
+		)
+		return nil, "", err
+	}
+
+	updatedPullRequest, err := s.prs.GetPullRequest(ctx, prID)
+	if err != nil {
+		s.logger.Error("failed to reassign",
+			logging.StringAttr("prID", prID),
+			logging.StringAttr("oldReviewerID", oldReviewerID),
+		)
+		return nil, "", err
+	}
+
+	s.logger.Info("pr was successfully reassigned",
+		logging.StringAttr("prID", prID),
+		logging.StringAttr("oldReviewerID", oldReviewerID),
+		logging.StringAttr("newReviewerID", newReviewerID),
+	)
+
+	return updatedPullRequest, newReviewerID, nil
 }

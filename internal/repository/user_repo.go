@@ -32,7 +32,7 @@ func (u *UserRepository) SetIsActive(ctx context.Context, userID string, isActiv
 	if err := u.db.QueryRowContext(ctx, updateQuery, userID, isActive).
 		Scan(&user.UserID, &user.Username, &user.IsActive); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, "", sql.ErrNoRows
+			return nil, "", domain.ErrNotFound()
 		}
 		return nil, "", err
 	}
@@ -48,7 +48,7 @@ func (u *UserRepository) SetIsActive(ctx context.Context, userID string, isActiv
 	var teamName string
 	if err := u.db.GetContext(ctx, &teamName, getTeamQuery, userID); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, "", sql.ErrNoRows
+			return nil, "", domain.ErrNotFound()
 		}
 		return nil, "", err
 	}
@@ -66,7 +66,7 @@ func (u *UserRepository) GetUser(ctx context.Context, userID string) (*domain.Us
 	var user domain.User
 	if err := u.db.GetContext(ctx, &user, getUserQuery, userID); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user is not exist %w", sql.ErrNoRows)
+			return nil, fmt.Errorf("user is not exist %w", domain.ErrNotFound())
 		}
 	}
 	return &user, nil
@@ -83,7 +83,9 @@ func (u *UserRepository) GetTeamName(ctx context.Context, userID string) (string
 
 	var teamName string
 	if err := u.db.GetContext(ctx, &teamName, getTeamNameQuery, userID); err != nil {
-		return "", err
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("user is not exist %w", domain.ErrNotFound())
+		}
 	}
 	return teamName, nil
 }

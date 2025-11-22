@@ -17,9 +17,10 @@ type UserRepositoryInterface interface {
 
 type PullRequestRepositoryInterface interface {
 	GetActiveTeamMembers(ctx context.Context, teamName, authorID string) ([]domain.User, error)
-	GetAssignedReviewers(ctx context.Context, prID string) ([]string, error)
+	GetPullRequest(ctx context.Context, prID string) (*domain.PullRequest, error)
 	Create(ctx context.Context, prID, prName, authorID string, assignedUsers []string) error
-	Merge(ctx context.Context, prID string) (*domain.PullRequest, error)
+	Merge(ctx context.Context, prID string) error
+	ReAssign(ctx context.Context, prID, oldReviewerID, newReviewerID string) error
 }
 
 type LoggerInterfaces interface {

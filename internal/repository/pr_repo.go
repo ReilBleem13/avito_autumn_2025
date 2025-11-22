@@ -76,7 +76,50 @@ func (p *PullRequestRepository) GetActiveTeamMembers(ctx context.Context, teamNa
 	return users, nil
 }
 
-func (p *PullRequestRepository) Merge(ctx context.Context, prID string) (*domain.PullRequest, error) {
+func (p *PullRequestRepository) Merge(ctx context.Context, prID string) error {
+	tx, err := p.db.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	checkQuery := `
+		SELECT EXISTS(
+			SELECT 1 FROM pull_requests
+			WHERE pull_request_id = $1
+		)
+	`
+
+	var exists bool
+	if err := tx.GetContext(ctx, &exists, checkQuery, prID); err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("pull request is empty: %w", domain.ErrNotFound())
+	}
+
+	updateQuery := `
+		UPDATE pull_requests 
+		SET status = 'MERGED', 
+			merged_at = NOW()
+		WHERE pull_request_id = $1 AND status = 'OPEN'
+	`
+
+	_, err = tx.ExecContext(ctx, updateQuery, prID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PullRequestRepository) GetPullRequest(ctx context.Context, prID string) (*domain.PullRequest, error) {
 	tx, err := p.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -90,8 +133,9 @@ func (p *PullRequestRepository) Merge(ctx context.Context, prID string) (*domain
 	}()
 
 	var pullRequest domain.PullRequest
-	getQuery := `
-		SELECT
+
+	getPRQuery := `
+		SELECT 
 			pull_request_id,
 			pull_request_name,
 			author_id,
@@ -101,43 +145,48 @@ func (p *PullRequestRepository) Merge(ctx context.Context, prID string) (*domain
 		WHERE pull_request_id = $1
 	`
 
-	if err := tx.GetContext(ctx, &pullRequest, getQuery, prID); err != nil {
+	if err := tx.GetContext(ctx, &pullRequest, getPRQuery, prID); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("pull_request is not exits: %w", sql.ErrNoRows)
+			return nil, fmt.Errorf("pull_request is not exits: %w", domain.ErrNotFound())
 		}
 		return nil, err
 	}
 
-	updateQuery := `
-		UPDATE pull_requests 
-		SET status = 'MERGED', 
-			merged_at = NOW()
-		WHERE pull_request_id = $1 AND status = 'OPEN'
-		RETURNING status, merged_at
-	`
-
-	err = tx.QueryRowContext(ctx, updateQuery, prID).Scan(
-		&pullRequest.Status, &pullRequest.MergedAt,
-	)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-	return &pullRequest, nil
-}
-
-func (p *PullRequestRepository) GetAssignedReviewers(ctx context.Context, prID string) ([]string, error) {
 	getQuery := `
 		SELECT prr.user_id 
 		FROM pull_request_reviewers prr
 		JOIN pull_requests pr ON pr.pull_request_id = prr.pull_request_id
-		WHERE prr.pull_request_id = $1 AND prr.user_id != pr.author_id
+		WHERE prr.pull_request_id = $1 
 	`
-
+	// убрать проверку на pr.author_id (AND prr.user_id != pr.author_id)
 	var users []string
-	if err := p.db.SelectContext(ctx, &users, getQuery, prID); err != nil {
+	if err := tx.SelectContext(ctx, &users, getQuery, prID); err != nil {
 		return nil, err
 	}
-	return users, nil
+
+	pullRequest.AssignedReviewers = users
+	return &pullRequest, nil
 }
 
-func (p *PullRequestRepository) ReAssign() {}
+func (p *PullRequestRepository) ReAssign(ctx context.Context, prID, oldReviewerID, newReviewerID string) error {
+	reassignQuery := `
+		UPDATE pull_request_reviewers 
+		SET user_id = $3
+		WHERE pull_request_id = $1 AND user_id = $2
+	`
+
+	res, err := p.db.ExecContext(ctx, reassignQuery, prID, oldReviewerID, newReviewerID)
+	if err != nil {
+		return err
+	}
+
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return fmt.Errorf("pull_request was not found: %w", domain.ErrNotFound())
+	}
+	return nil
+}

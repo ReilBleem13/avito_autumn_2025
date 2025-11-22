@@ -46,7 +46,7 @@ func (t *TeamRepository) Create(ctx context.Context, teamName string, users []do
 	createUserQuery := `
 		INSERT INTO users (user_id, username, is_active)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id) DO NOTHING
+		ON CONFLICT (user_id, username) DO NOTHING
 	`
 
 	createTeamMember := `
@@ -66,6 +66,7 @@ func (t *TeamRepository) Create(ctx context.Context, teamName string, users []do
 			return err
 		}
 	}
+	// добавить проверку если уже существует
 	return nil
 }
 
@@ -78,7 +79,7 @@ func (t *TeamRepository) Get(ctx context.Context, teamName string) ([]domain.Use
 	}
 
 	if !exists {
-		return nil, sql.ErrNoRows
+		return nil, domain.ErrNotFound()
 	}
 
 	getTeamMembersQuery := `

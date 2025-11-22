@@ -71,4 +71,31 @@ func (h *Handler) handlePullRequestReassign(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	var req reassignDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("invalid request body", logging.ErrAttr(err))
+		h.WriteError(w, domain.ErrInvalidRequest("invalid json payload"))
+		return
+	}
+
+	pullRequest, newReviewerID, err := h.svc.ReAssign(r.Context(), req.PullRequestID, req.OldUserID)
+	if err != nil {
+		h.WriteError(w, err)
+		return
+	}
+
+	response := getAssignedDTO{
+		PullRequestID:     pullRequest.PullRequestID,
+		PullRequestName:   pullRequest.PullRequestName,
+		AuthorID:          pullRequest.AuthorID,
+		Status:            pullRequest.Status,
+		AssignedReviewers: pullRequest.AssignedReviewers,
+	}
+
+	writeJSON(w, 200,
+		map[string]any{
+			"pr":          response,
+			"replaced_by": newReviewerID,
+		},
+	)
 }

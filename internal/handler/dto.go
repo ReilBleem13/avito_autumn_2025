@@ -26,6 +26,11 @@ type doMergedRequestDTO struct {
 	PullRequestID string `json:"pull_request_id"`
 }
 
+type reassignDTO struct {
+	PullRequestID string `json:"pull_request_id"`
+	OldUserID     string `json:"old_user_id"`
+}
+
 // response
 type getTeamUsersDTO struct {
 	TeamName string        `json:"team_name"`
@@ -46,4 +51,12 @@ type getMergedDTO struct {
 	Status            domain.PRStatus `json:"status"`
 	AssignedReviewers []string        `json:"assigned_reviewers"`
 	MergedAt          *time.Time      `json:"merged_at"`
+}
+
+type getAssignedDTO struct {
+	PullRequestID     string          `json:"pull_request_id"`
+	PullRequestName   string          `json:"pull_request_name"`
+	AuthorID          string          `json:"author_id"`
+	Status            domain.PRStatus `json:"status"`
+	AssignedReviewers []string        `json:"assigned_reviewers"`
 }
