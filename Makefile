@@ -12,3 +12,5 @@ docker-stop-one:
 
 docker-restart-one: docker-stop-one docker-up
 
+run-test:
+	go test -tags=integration ./... -v
