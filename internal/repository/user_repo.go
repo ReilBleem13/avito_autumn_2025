@@ -2,7 +2,6 @@ package repository
 
 import (
 	"ReilBleem13/pull_requests_service/internal/domain"
-	"ReilBleem13/pull_requests_service/internal/repository/database"
 	"context"
 	"database/sql"
 	"fmt"
@@ -14,9 +13,9 @@ type UserRepository struct {
 	db *sqlx.DB
 }
 
-func NewUserRepository(db *database.PostgresDB) *UserRepository {
+func NewUserRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{
-		db: db.Client(),
+		db: db,
 	}
 }
 

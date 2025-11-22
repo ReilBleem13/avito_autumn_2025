@@ -16,10 +16,7 @@ func (s *Service) SetIsActive(ctx context.Context, userID string, isActive bool)
 	)
 
 	if userID == "" {
-		s.logger.Error("failed to set user status",
-			logging.StringAttr("userID", userID),
-			logging.StringAttr("error", "user_id is empty"),
-		)
+		s.logger.Error("failed to set user status")
 		return nil, "", domain.ErrInvalidRequest("user_id is empty")
 	}
 
@@ -42,4 +39,31 @@ func (s *Service) SetIsActive(ctx context.Context, userID string, isActive bool)
 		logging.BoolAttr("status", isActive),
 	)
 	return user, teamName, nil
+}
+
+func (s *Service) GetReview(ctx context.Context, userID string) ([]domain.PullRequestShort, error) {
+	s.logger.Info("attempt to get review",
+		logging.StringAttr("userID", userID),
+	)
+
+	if userID == "" {
+		s.logger.Error("failed to set user status")
+		return nil, domain.ErrInvalidRequest("user_id is empty")
+	}
+
+	pullRequests, err := s.prs.GetPullRequestByID(ctx, userID)
+	if err != nil {
+		s.logger.Error("failed to get pull requests",
+			logging.StringAttr("userID", userID),
+			logging.ErrAttr(err),
+		)
+		return nil, err
+	}
+
+	s.logger.Info("pull request was successfully received",
+		logging.StringAttr("userID", userID),
+		logging.IntAttr("count pr", len(pullRequests)),
+	)
+
+	return pullRequests, nil
 }

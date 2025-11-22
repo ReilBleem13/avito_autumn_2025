@@ -43,9 +43,9 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepo := repository.NewUserRepository(db)
-	teamRepo := repository.NewTeamRepository(db)
-	prRepo := repository.NewPullRequestRepository(db)
+	userRepo := repository.NewUserRepository(db.Client())
+	teamRepo := repository.NewTeamRepository(db.Client())
+	prRepo := repository.NewPullRequestRepository(db.Client())
 
 	svc := service.NewService(userRepo, teamRepo, prRepo, logger)
 

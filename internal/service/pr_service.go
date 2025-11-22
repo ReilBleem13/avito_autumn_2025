@@ -205,7 +205,6 @@ func (s *Service) ReAssign(ctx context.Context, prID, oldReviewerID string) (*do
 		return nil, "", err
 	}
 
-	// добавить проверку, что новый кандидат это не автор!
 	candidates := make([]string, 0)
 	for _, tm := range teamMembers {
 		if tm.UserID == oldReviewerID {
@@ -221,6 +220,10 @@ func (s *Service) ReAssign(ctx context.Context, prID, oldReviewerID string) (*do
 		}
 
 		if alreadyAssigned || tm.UserID == pullRequest.AuthorID {
+			continue
+		}
+
+		if !tm.IsActive {
 			continue
 		}
 		candidates = append(candidates, tm.UserID)

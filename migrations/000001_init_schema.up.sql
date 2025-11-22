@@ -1,7 +1,7 @@
 CREATE TABLE users (
     user_id     TEXT        PRIMARY KEY,
-    username    TEXT        NOT NULL UNIQUE,                  
-    is_active   BOOLEAN     NOT NULL DEFAULT true,
+    username    TEXT        NOT NULL,                  
+    is_active   BOOLEAN     NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -23,7 +23,6 @@ CREATE TABLE pull_requests (
     pull_request_id     TEXT        PRIMARY KEY, -- исправить
     pull_request_name   TEXT        NOT NULL,
     author_id           TEXT        NOT NULL REFERENCES users(user_id),
-    -- author_team_name           TEXT NOT NULL,
     status              TEXT        NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'MERGED')),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     merged_at           TIMESTAMPTZ NULL
@@ -32,7 +31,6 @@ CREATE TABLE pull_requests (
 CREATE TABLE pull_request_reviewers (
     pull_request_id TEXT NOT NULL REFERENCES pull_requests(pull_request_id) ON DELETE CASCADE,
     user_id         TEXT NOT NULL REFERENCES users(user_id)         ON DELETE CASCADE,
-    -- reviewer_team_name  TEXT NOT NULL,
     assigned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (pull_request_id, user_id)
 );

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"ReilBleem13/pull_requests_service/internal/domain"
-	"ReilBleem13/pull_requests_service/internal/repository/database"
 	"context"
 	"database/sql"
 
@@ -14,9 +13,9 @@ type TeamRepository struct {
 	db *sqlx.DB
 }
 
-func NewTeamRepository(db *database.PostgresDB) *TeamRepository {
+func NewTeamRepository(db *sqlx.DB) *TeamRepository {
 	return &TeamRepository{
-		db: db.Client(),
+		db: db,
 	}
 }
 
@@ -46,7 +45,7 @@ func (t *TeamRepository) Create(ctx context.Context, teamName string, users []do
 	createUserQuery := `
 		INSERT INTO users (user_id, username, is_active)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id, username) DO NOTHING
+		ON CONFLICT (user_id) DO NOTHING
 	`
 
 	createTeamMember := `

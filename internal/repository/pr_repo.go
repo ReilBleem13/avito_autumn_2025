@@ -2,7 +2,6 @@ package repository
 
 import (
 	"ReilBleem13/pull_requests_service/internal/domain"
-	"ReilBleem13/pull_requests_service/internal/repository/database"
 	"context"
 	"database/sql"
 	"fmt"
@@ -15,9 +14,9 @@ type PullRequestRepository struct {
 	db *sqlx.DB
 }
 
-func NewPullRequestRepository(db *database.PostgresDB) *PullRequestRepository {
+func NewPullRequestRepository(db *sqlx.DB) *PullRequestRepository {
 	return &PullRequestRepository{
-		db: db.Client(),
+		db: db,
 	}
 }
 
@@ -166,6 +165,30 @@ func (p *PullRequestRepository) GetPullRequest(ctx context.Context, prID string)
 
 	pullRequest.AssignedReviewers = users
 	return &pullRequest, nil
+}
+
+func (p *PullRequestRepository) GetPullRequestByID(ctx context.Context, userID string) ([]domain.PullRequestShort, error) {
+	getQuery := `
+		SELECT 
+			pr.pull_request_id,
+			pr.pull_request_name,
+			pr.author_id,
+			pr.status
+		FROM pull_requests pr
+		JOIN pull_request_reviewers prr ON prr.pull_request_id = pr.pull_request_id
+		WHERE prr.user_id = $1
+		ORDER BY pr.created_at
+	`
+
+	var pullRequests []domain.PullRequestShort
+	if err := p.db.SelectContext(ctx, &pullRequests, getQuery, userID); err != nil {
+		return nil, err
+	}
+
+	if len(pullRequests) == 0 {
+		return nil, domain.ErrNotFound()
+	}
+	return pullRequests, nil
 }
 
 func (p *PullRequestRepository) ReAssign(ctx context.Context, prID, oldReviewerID, newReviewerID string) error {

@@ -26,7 +26,7 @@ func NewRouter(svc *service.Service, logger service.LoggerInterfaces) *http.Serv
 	mux.HandleFunc("/team/get", h.handleGetTeam)
 
 	mux.HandleFunc("/users/setIsActive", h.handleSetIsActive)
-	// mux.HandleFunc("/users/getReview", nil)
+	mux.HandleFunc("/users/getReview", h.handleGetReview)
 
 	mux.HandleFunc("/pullRequest/create", h.handlePullRequestCreate)
 	mux.HandleFunc("/pullRequest/merge", h.handlePullRequestMerge)

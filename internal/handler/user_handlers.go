@@ -37,3 +37,23 @@ func (h *Handler) handleSetIsActive(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"user": response})
 }
+
+func (h *Handler) handleGetReview(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+
+	pullRequestsShort, err := h.svc.GetReview(r.Context(), userID)
+	if err != nil {
+		h.WriteError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"user_id":       userID,
+		"pull_requests": pullRequestsShort,
+	})
+}
